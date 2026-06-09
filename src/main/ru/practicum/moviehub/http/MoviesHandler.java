@@ -1,6 +1,5 @@
 package ru.practicum.moviehub.http;
 
-import com.google.gson.Gson;
 import com.sun.net.httpserver.HttpExchange;
 import ru.practicum.moviehub.api.ErrorResponse;
 import ru.practicum.moviehub.model.Movie;
@@ -12,7 +11,6 @@ import java.util.List;
 
 class MoviesHandler extends BaseHttpHandler {
     private final MoviesStore moviesStore;
-    Gson gson = new Gson();
 
     public MoviesHandler(MoviesStore moviesStore) {
         this.moviesStore = moviesStore;
@@ -20,7 +18,7 @@ class MoviesHandler extends BaseHttpHandler {
 
     public void methodGet(HttpExchange ex, String[] pathParts) throws IOException {
 
-        if (pathParts.length == 2 && pathParts[1].equals("movies")) {
+        if (pathParts.length == 2) {
             String query = ex.getRequestURI().getQuery();
 
             if (query == null || query.isEmpty()) {
@@ -31,9 +29,7 @@ class MoviesHandler extends BaseHttpHandler {
             if (query.startsWith("releaseYear=")) {
                 try {
                     int releaseYear = Integer.parseInt(query.split("=")[1]);
-                    List<Movie> filteredMovies = moviesStore.getMovies().stream()
-                            .filter(movie -> movie.getReleaseYear() == releaseYear)
-                            .toList();
+                    List<Movie> filteredMovies = moviesStore.findMoviesByYear(releaseYear);
                     sendJson(ex, 200, gson.toJson(filteredMovies));
                 } catch (NumberFormatException e) {
                     ErrorResponse errorResponse = new ErrorResponse("Некорректный формат параметра year");
@@ -42,7 +38,7 @@ class MoviesHandler extends BaseHttpHandler {
                 return;
             }
         }
-        if (pathParts.length == 3 && pathParts[1].equals("movies")) {
+        if (pathParts.length == 3) {
             try {
                 int id = Integer.parseInt(pathParts[2]);
                 Movie movie = moviesStore.getMovie(id);
@@ -65,6 +61,12 @@ class MoviesHandler extends BaseHttpHandler {
     public void methodPost(HttpExchange ex) throws IOException {
 
         String body = new String(ex.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+
+        if (body.isEmpty()) {
+            ErrorResponse errorResponse = new ErrorResponse("Укажите все данные фильма");
+            sendError(ex, 422, errorResponse);
+            return;
+        }
         Movie newMovie = gson.fromJson(body, Movie.class);
 
         if (newMovie.getTitle() == null || newMovie.getTitle().isBlank()) {
@@ -85,7 +87,7 @@ class MoviesHandler extends BaseHttpHandler {
 
     public void methodDelete(HttpExchange ex, String[] pathParts) throws IOException {
 
-        if (pathParts.length == 3 && pathParts[1].equals("movies")) {
+        if (pathParts.length == 3) {
             try {
                 int id = Integer.parseInt(pathParts[2]);
                 Movie movie = moviesStore.getMovie(id);
@@ -113,13 +115,13 @@ class MoviesHandler extends BaseHttpHandler {
         String path = ex.getRequestURI().getPath();
         String[] pathParts = path.split("/");
 
-        if (method.equalsIgnoreCase("GET")) {
+        if (method.equalsIgnoreCase("GET") && pathParts[1].equals("movies")) {
             methodGet(ex, pathParts);
 
         } else if (method.equalsIgnoreCase("POST")) {
             methodPost(ex);
 
-        } else if (method.equalsIgnoreCase("DELETE")) {
+        } else if (method.equalsIgnoreCase("DELETE") && pathParts[1].equals("movies")) {
             methodDelete(ex, pathParts);
 
         } else {
