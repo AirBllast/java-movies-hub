@@ -21,11 +21,11 @@ public class MoviesStore {
         return movie;
     }
 
-    public List<Movie> findMoviesByYear (int releaseYear) {
+    public List<Movie> findMoviesByYear(int releaseYear) {
 
         return movies.values().stream()
-               .filter(movie -> movie.getReleaseYear() == releaseYear)
-               .toList();
+                .filter(movie -> movie.getReleaseYear() == releaseYear)
+                .toList();
     }
 
     public Movie getMovie(int id) {
@@ -40,7 +40,7 @@ public class MoviesStore {
         movies.remove(id);
     }
 
-    public void  clear() {
+    public void clear() {
         movies.clear();
         idGenerator.set(1);
     }
